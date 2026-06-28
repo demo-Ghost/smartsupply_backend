@@ -1,0 +1,21 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploys the SmartSupply API as a Docker web service.
+services:
+  - type: web
+    name: smartsupply-api
+    runtime: docker
+    plan: starter # use "free" to try it (spins down when idle); "starter" stays warm
+    region: frankfurt # closest Render region to the eu-west Supabase database
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/docs/json # DB-free endpoint, returns 200 when the app is up
+    autoDeploy: true # redeploy on every push to the connected branch
+    envVars:
+      - key: DATABASE_URL # set in the dashboard (Supabase connection string)
+        sync: false
+      - key: PUBLIC_URL # e.g. https://smartsupply-api.onrender.com or https://smartsupply.gr
+        sync: false
+      - key: API_PREFIX
+        value: /api
+      - key: LOG_LEVEL
+        value: info
+    # Render injects PORT automatically; src/index.ts already reads process.env.PORT.
