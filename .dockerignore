@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.example
+*.log
+example_images
+example_categories.json
+example_data.json
+example_raw*.json
+image_upload_script.js
+Dockerfile
+.dockerignore

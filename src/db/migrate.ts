@@ -1,11 +1,32 @@
 import 'dotenv/config'
 import * as path from 'path'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import { Pool } from 'pg'
 import { Kysely, PostgresDialect } from 'kysely'
-import { FileMigrationProvider, Migrator } from 'kysely/migration'
+import { Migrator, type Migration, type MigrationProvider } from 'kysely/migration'
 import * as fs from 'fs/promises'
 import { Database } from './database.js'
+
+// FileMigrationProvider passes raw Windows paths to import(), which ESM rejects.
+// This provider converts them to file:// URLs so migrations load cross-platform.
+class ESMFileMigrationProvider implements MigrationProvider {
+  constructor(private readonly folder: string) {}
+
+  async getMigrations(): Promise<Record<string, Migration>> {
+    const migrations: Record<string, Migration> = {}
+    const files = await fs.readdir(this.folder)
+
+    for (const fileName of files.sort()) {
+      if (!/\.(ts|js|mjs)$/.test(fileName) || fileName.endsWith('.d.ts')) continue
+      const importPath = pathToFileURL(path.join(this.folder, fileName)).href
+      const migration = (await import(importPath)) as Migration
+      const key = fileName.substring(0, fileName.lastIndexOf('.'))
+      migrations[key] = migration
+    }
+
+    return migrations
+  }
+}
 
 async function migrate(): Promise<void> {
   const db = new Kysely<Database>({
@@ -16,11 +37,9 @@ async function migrate(): Promise<void> {
 
   const migrator = new Migrator({
     db,
-    provider: new FileMigrationProvider({
-      fs,
-      path,
-      migrationFolder: path.join(fileURLToPath(new URL('.', import.meta.url)), 'migrations'),
-    }),
+    provider: new ESMFileMigrationProvider(
+      path.join(fileURLToPath(new URL('.', import.meta.url)), 'migrations')
+    ),
   })
 
   const { error, results } = await migrator.migrateToLatest()
