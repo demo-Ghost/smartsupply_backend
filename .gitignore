@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.log
+image_upload_script.js
+example_categories/
+example_categories.json
+example_data/
+example_data.json
+example_raw/
+example_raw*.json
+example_images/
